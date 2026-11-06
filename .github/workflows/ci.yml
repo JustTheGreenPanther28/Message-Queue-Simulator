@@ -70,7 +70,7 @@ jobs:
         if: failure()
         run: docker compose -p tilechat-prod logs --tail 200
       - name: Scan images for known vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           image-ref: tilechat-prod-chat-service
