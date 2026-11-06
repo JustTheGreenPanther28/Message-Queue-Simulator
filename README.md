@@ -112,3 +112,4 @@ docker compose start rabbitmq  # pending events are published automatically
 - No WebSocket push: clients poll. Next step would be a gateway with WebSockets fed by the same events.
 - Outbox rows are never cleaned up, so a cleanup job would delete published rows older than N days.
 "# Message-Queue-Simulator" 
+"# Chat-Application" 
