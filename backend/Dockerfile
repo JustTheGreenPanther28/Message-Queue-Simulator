@@ -1,5 +1,5 @@
 # One Dockerfile for every backend service: docker build --build-arg SERVICE=chat-service ./backend
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 ARG SERVICE
 WORKDIR /src
 COPY . .
