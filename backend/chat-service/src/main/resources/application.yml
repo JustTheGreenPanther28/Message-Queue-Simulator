@@ -1,0 +1,68 @@
+server:
+  port: ${PORT:8082}
+
+spring:
+  application:
+    name: chat-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/chat_db
+    username: ${DB_USER:app}
+    password: ${DB_PASSWORD:app}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # schema is owned by Flyway (src/main/resources/db/migration)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 500ms
+      password: ${REDIS_PASSWORD:}
+  cache:
+    type: redis
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER:app}
+    password: ${RABBIT_PASSWORD:app}
+    connection-timeout: 3s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+
+app:
+  storage:
+    endpoint: ${S3_ENDPOINT:http://localhost:8333}
+    public-endpoint: ${S3_PUBLIC_ENDPOINT:/storage}   # same-origin via proxy; or an absolute URL for direct mode
+    region: ${S3_REGION:us-east-1}
+    access-key: ${S3_ACCESS_KEY:tilechat}
+    secret-key: ${S3_SECRET_KEY:tilechat-local-secret}
+    bucket: ${S3_BUCKET:tilechat}
+    init-bucket: ${S3_INIT_BUCKET:true}
+    # Browser origins allowed to PUT uploads directly to the bucket.
+    cors-origins: ${S3_CORS_ORIGINS:http://localhost:3000,http://localhost:5173}
+  jwt:
+    secret: ${JWT_SECRET:local-dev-secret-change-me-please-0123456789}
+    ttl: 24h
+
+management:
+  endpoints.web.exposure.include: health
+
+# Consumer retries: 4 attempts with exponential backoff, then the message is
+# rejected (not requeued) and dead-lettered to "<queue>.dlq".
+spring.rabbitmq.listener.simple:
+  default-requeue-rejected: false
+  retry:
+    enabled: true
+    max-attempts: 4
+    initial-interval: 1s
+    multiplier: 2
+    max-interval: 10s
+
+# --- runtime conventions (all environments) ---
+server.shutdown: graceful                      # finish in-flight requests on SIGTERM
+spring.lifecycle.timeout-per-shutdown-phase: 20s
+management.endpoint.health.probes.enabled: true   # /actuator/health/liveness and /readiness
+management.endpoint.health.show-details: never
+app.websocket.allowed-origins: ${WS_ALLOWED_ORIGINS:*}

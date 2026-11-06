@@ -1,0 +1,15 @@
+spring:
+  cache:
+    type: none          # caching is covered by the e2e test; here we test DB-level correctness
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+app:
+  storage:
+    init-bucket: false        # no S3 needed; storage has its own IT (common/ObjectStorageIT)
+  outbox:
+    poll-interval-ms: 3600000   # keep events in the outbox so tests can assert on them
+logging:
+  level:
+    org.springframework.amqp: OFF

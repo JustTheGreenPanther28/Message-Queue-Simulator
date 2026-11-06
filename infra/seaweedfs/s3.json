@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "tilechat",
+      "credentials": [{ "accessKey": "tilechat", "secretKey": "tilechat-local-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

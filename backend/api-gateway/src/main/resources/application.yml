@@ -1,0 +1,79 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 500ms
+      password: ${REDIS_PASSWORD:}
+  cloud:
+    gateway:
+      # Every API call: 20/s sustained, bursts of 40, per signed-in user (per IP when anonymous).
+      # Fails open if Redis is down.
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            key-resolver: "#{@apiKeyResolver}"
+            redis-rate-limiter.replenishRate: 20
+            redis-rate-limiter.burstCapacity: 40
+            redis-rate-limiter.requestedTokens: 1
+        # Note: no response-header-rewriting filters here: they break WebSocket upgrades
+        # (headers are read-only once the 101 is sent). Security headers are set by nginx.
+      httpclient:
+        connect-timeout: 3000
+        response-timeout: 30s
+        pool:
+          max-idle-time: 30s   # drop pooled connections to containers that may have been replaced
+      routes:
+        # --- user-service ---
+        - id: auth
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            # 10 requests burst, 1 per second sustained, per IP. Fails open if Redis is down.
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.requestedTokens: 1
+        - id: users
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/users/**
+
+        # --- chat-service ---
+        - id: chat-ws
+          uri: ${CHAT_SERVICE_WS_URL:ws://localhost:8082}
+          predicates:
+            - Path=/ws
+        - id: chat
+          uri: ${CHAT_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/conversations/**,/api/messages/**,/api/blocks/**
+
+        # --- notification-service ---
+        - id: notifications-ws
+          uri: ${NOTIFICATION_SERVICE_WS_URL:ws://localhost:8083}
+          predicates:
+            - Path=/ws-notifications
+        - id: notifications
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/notifications/**
+
+management:
+  # Only health. Never expose the "gateway" actuator endpoint: it can rewrite routes at runtime.
+  endpoints.web.exposure.include: health
+  endpoint.health.probes.enabled: true
+  endpoint.health.show-details: never
+
+app.jwt.secret: ${JWT_SECRET:local-dev-secret-change-me-please-0123456789}   # to key rate limits by user
+app.websocket.allowed-origins: ${WS_ALLOWED_ORIGINS:*}   # set to your web origin in production
+server.shutdown: graceful
+spring.lifecycle.timeout-per-shutdown-phase: 20s

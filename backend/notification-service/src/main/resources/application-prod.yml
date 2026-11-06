@@ -1,0 +1,19 @@
+# Production profile (SPRING_PROFILES_ACTIVE=prod). Secrets have NO defaults here: a missing
+# one stops startup, and ProductionSafetyCheck refuses known dev values.
+spring:
+  datasource:
+    password: ${DB_PASSWORD}
+  rabbitmq:
+    password: ${RABBIT_PASSWORD}
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+  storage:
+    access-key: ${S3_ACCESS_KEY:}      # blank = IAM role / default AWS credential chain
+    secret-key: ${S3_SECRET_KEY:}
+    init-bucket: ${S3_INIT_BUCKET:false}
+  websocket:
+    allowed-origins: ${WS_ALLOWED_ORIGINS}
+logging:
+  level:
+    root: INFO
